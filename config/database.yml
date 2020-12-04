@@ -90,7 +90,7 @@ test:
 #
 production:
   <<: *default
-  database: PracticalDeveloper_production
-  pool: <%= ENV['DATABASE_POOL_SIZE'] %>
-  username: PracticalDeveloper
-  password: <%= ENV['PRACTICALDEVELOPER_DATABASE_PASSWORD'] %>
+  database: <%= ENV['FOREM_DATABASE_NAME'] %>
+  pool: <%= ENV['FOREM_DATABASE_POOL_SIZE'] %>
+  username: <%= ENV['FOREM_DATABASE_USERNAME'] %>
+  password: <%= ENV['FOREM_DATABASE_PASSWORD'] %>
