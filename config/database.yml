@@ -90,7 +90,8 @@ test:
 #
 production:
   <<: *default
+  host: <%= ENV['FOREM_DATABASE_HOST'] %>
   database: <%= ENV['FOREM_DATABASE_NAME'] %>
-  pool: <%= ENV['FOREM_DATABASE_POOL_SIZE'] %>
   username: <%= ENV['FOREM_DATABASE_USERNAME'] %>
   password: <%= ENV['FOREM_DATABASE_PASSWORD'] %>
+  port: <%= ENV['FOREM_DATABASE_PORT'] %>
