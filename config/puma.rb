@@ -26,6 +26,14 @@ pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }
 #
 workers ENV.fetch("WEB_CONCURRENCY", 2)
 
+
+pidfile "/home/deploy/apps/forem/shared/tmp/pids/puma.pid"
+state_path "/home/deploy/apps/forem/shared/tmp/pids/puma.state"
+stdout_redirect '/home/deploy/apps/forem/current/log/puma.access.log', '/home/deploy/apps/forem/current/log/puma.error.log', true
+
+bind 'unix:///home/deploy/apps/forem/shared/tmp/sockets/forem-puma.sock'
+
+
 # calls GC a handful of times and compacts the heap on Ruby 2.7+ before forking.
 # This may reduce memory usage of Puma on MRI.
 nakayoshi_fork
