@@ -24,7 +24,7 @@ pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }
 # Workers do not work on JRuby or Windows (both of which do not support
 # processes).
 #
-workers ENV.fetch("WEB_CONCURRENCY", 2)
+workers ENV.fetch("WEB_CONCURRENCY", 1)
 
 # calls GC a handful of times and compacts the heap on Ruby 2.7+ before forking.
 # This may reduce memory usage of Puma on MRI.
