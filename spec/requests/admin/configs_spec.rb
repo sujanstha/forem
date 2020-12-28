@@ -74,7 +74,7 @@ RSpec.describe "/admin/config", type: :request do
 
       describe "Authentication" do
         it "updates enabled authentication providers" do
-          enabled = Authentication::Providers.available.first.to_s
+          enabled = Authentication::Providers.available.last.to_s
           post admin_config_path, params: {
             site_config: {
               "#{enabled}_key": "someKey",
@@ -87,7 +87,7 @@ RSpec.describe "/admin/config", type: :request do
         end
 
         it "strips empty elements" do
-          provider = Authentication::Providers.available.first.to_s
+          provider = Authentication::Providers.available.last.to_s
           enabled = "#{provider}, '', nil"
           post admin_config_path, params: {
             site_config: {
@@ -191,13 +191,6 @@ RSpec.describe "/admin/config", type: :request do
           post "/admin/config", params: { site_config: { community_name: name_magoo },
                                           confirmation: confirmation_message }
           expect(SiteConfig.community_name).to eq(name_magoo)
-        end
-
-        it "updates the collective_noun" do
-          collective_noun = "Rhumba"
-          post "/admin/config", params: { site_config: { collective_noun: collective_noun },
-                                          confirmation: confirmation_message }
-          expect(SiteConfig.collective_noun).to eq(collective_noun)
         end
 
         it "updates the community_member_label" do
