@@ -18,15 +18,15 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - uses: actions/checkout@v2
     - name: Build the Docker image Builder
-      uses: actions/checkout@v2
       run: |
         docker build --target builder \
           --cache-from=docker.io/sujan000/forem:builder \
           --tag docker.io/sujan000/forem:builder .
         docker push docker.io/sujan000/forem:builder
+    - uses: actions/checkout@v2
     - name: Build the Docker image
-      uses: actions/checkout@v2
       run: |
         docker build --target production \
          --cache-from=docker.io/sujan000/forem:builder \
