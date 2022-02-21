@@ -13,13 +13,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build the Docker image Builder
+      uses: actions/checkout@v2
       run: |
         docker build --target builder \
           --cache-from=docker.io/sujan000/forem:builder \
           --tag docker.io/sujan000/forem:builder .
+        docker push docker.io/sujan000/forem:builder
     - name: Build the Docker image
+      uses: actions/checkout@v2
       run: |
         docker build --target production \
          --cache-from=docker.io/sujan000/forem:builder \
@@ -27,3 +34,6 @@ jobs:
          --tag docker.io/sujan000/forem:$(date +%Y%m%d) \
          --tag docker.io/sujan000/forem:production \
          --tag docker.io/sujan000/forem:latest .
+        docker push docker.io/sujan000/forem:$(date +%Y%m%d)
+        docker push docker.io/sujan000/forem:production
+        docker push docker.io/sujan000/forem:latest
