@@ -1,0 +1,29 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches: [ main-sujanstha ]
+  pull_request:
+    branches: [ main-sujanstha ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image Builder
+      run: |
+        docker build --target builder \
+          --cache-from=docker.io/sujan000/forem:builder \
+          --tag docker.io/sujan000/forem:builder .
+    - name: Build the Docker image
+      run: |
+        docker build --target production \
+         --cache-from=docker.io/sujan000/forem:builder \
+         --cache-from=docker.io/sujan000/forem:production \
+         --tag docker.io/sujan000/forem:$(date +%Y%m%d) \
+         --tag docker.io/sujan000/forem:production \
+         --tag docker.io/sujan000/forem:latest .
