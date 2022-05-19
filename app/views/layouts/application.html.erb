@@ -44,7 +44,7 @@
       <meta property="forem:domain" content="<%= Settings::General.app_domain %>" />
     <% end %>
     <% if ENV.key?('ADSENSE_CLIENT_ID') %>
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=#{ENV['ADSENSE_CLIENT_ID']}" crossorigin="anonymous"></script>
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= ENV['ADSENSE_CLIENT_ID'] %>" crossorigin="anonymous"></script>
     <% end %>
   </head>
   <% unless internal_navigation? %>
