@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_04_29_150448) do
+ActiveRecord::Schema[7.0].define(version: 2022_08_04_135751) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_stat_statements"
@@ -141,7 +141,6 @@ ActiveRecord::Schema[7.0].define(version: 2022_04_29_150448) do
     t.boolean "show_comments", default: true
     t.text "slug"
     t.string "social_image"
-    t.integer "spaminess_rating", default: 0
     t.string "title"
     t.datetime "updated_at", precision: nil, null: false
     t.bigint "user_id"
@@ -635,6 +634,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_04_29_150448) do
   create_table "navigation_links", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.boolean "display_only_when_signed_in", default: false
+    t.integer "display_to", default: 0, null: false
     t.string "icon", null: false
     t.string "name", null: false
     t.integer "position"
@@ -1299,6 +1299,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_04_29_150448) do
   create_table "users_gdpr_delete_requests", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "name"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.string "username"
