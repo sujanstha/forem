@@ -3,8 +3,9 @@ require "swagger_helper"
 
 # rubocop:disable RSpec/EmptyExampleGroup
 # rubocop:disable RSpec/VariableName
+# rubocop:disable Layout/LineLength
 
-RSpec.describe "Api::V1::Docs::Articles", type: :request do
+RSpec.describe "Api::V1::Docs::Articles" do
   let(:organization) { create(:organization) } # not used by every spec but lower times overall
   let(:tag) { create(:tag, :with_colors, name: "discuss") }
   let(:article) { create(:article, featured: true, tags: "discuss", published: true) }
@@ -13,10 +14,7 @@ RSpec.describe "Api::V1::Docs::Articles", type: :request do
   let(:user) { api_secret.user }
   let(:Accept) { "application/vnd.forem.api-v1+json" }
 
-  before do
-    stub_const("FlareTag::FLARE_TAG_IDS_HASH", { "discuss" => tag.id })
-    allow(FeatureFlag).to receive(:enabled?).with(:api_v1).and_return(true)
-  end
+  before { stub_const("FlareTag::FLARE_TAG_IDS_HASH", { "discuss" => tag.id }) }
 
   describe "GET /articles" do
     before do
@@ -25,6 +23,7 @@ RSpec.describe "Api::V1::Docs::Articles", type: :request do
 
     path "/api/articles" do
       get "Published articles" do
+        security []
         tags "articles"
         description "This endpoint allows the client to retrieve a list of articles.
 
@@ -93,6 +92,41 @@ belonging to the requested collection, ordered by ascending publication date.",
                   example: 99
 
         response "200", "A List of Articles" do
+          let(:"api-key") { nil }
+          schema  type: :array,
+                  items: { "$ref": "#/components/schemas/ArticleIndex" }
+          add_examples
+
+          run_test!
+        end
+      end
+    end
+  end
+
+  describe "GET /articles/me" do
+    path "/api/articles/me" do
+      get "User's articles" do
+        tags "articles"
+        description "This endpoint allows the client to retrieve a list of published articles on behalf of an authenticated user.
+
+\"Articles\" are all the posts that users create on DEV that typically show up in the feed. They can be a blog post, a discussion question, a help thread etc. but is referred to as article within the code.
+
+Published articles will be in reverse chronological publication order.
+
+It will return published articles with pagination. By default a page will contain 30 articles."
+        operationId "getUserArticles"
+        produces "application/json"
+        parameter "$ref": "#/components/parameters/pageParam"
+        parameter "$ref": "#/components/parameters/perPageParam30to1000"
+
+        response "401", "Unauthorized" do
+          let(:"api-key") { nil }
+          add_examples
+
+          run_test!
+        end
+
+        response "200", "A List of the authenticated user's Articles" do
           let(:"api-key") { api_secret.secret }
           schema  type: :array,
                   items: { "$ref": "#/components/schemas/ArticleIndex" }
@@ -100,9 +134,105 @@ belonging to the requested collection, ordered by ascending publication date.",
 
           run_test!
         end
+      end
+    end
 
-        response "401", "unauthorized" do
-          let(:"api-key") { "invalid" }
+    path "/api/articles/me/published" do
+      get "User's published articles" do
+        tags "articles"
+        description "This endpoint allows the client to retrieve a list of published articles on behalf of an authenticated user.
+
+\"Articles\" are all the posts that users create on DEV that typically show up in the feed. They can be a blog post, a discussion question, a help thread etc. but is referred to as article within the code.
+
+Published articles will be in reverse chronological publication order.
+
+It will return published articles with pagination. By default a page will contain 30 articles."
+        operationId "getUserPublishedArticles"
+        produces "application/json"
+        parameter "$ref": "#/components/parameters/pageParam"
+        parameter "$ref": "#/components/parameters/perPageParam30to1000"
+
+        response "401", "Unauthorized" do
+          let(:"api-key") { nil }
+          add_examples
+
+          run_test!
+        end
+
+        response "200", "A List of the authenticated user's Articles" do
+          let(:"api-key") { api_secret.secret }
+          schema  type: :array,
+                  items: { "$ref": "#/components/schemas/ArticleIndex" }
+          add_examples
+
+          run_test!
+        end
+      end
+    end
+
+    path "/api/articles/me/unpublished" do
+      get "User's unpublished articles" do
+        tags "articles"
+        description "This endpoint allows the client to retrieve a list of unpublished articles on behalf of an authenticated user.
+
+\"Articles\" are all the posts that users create on DEV that typically show up in the feed. They can be a blog post, a discussion question, a help thread etc. but is referred to as article within the code.
+
+Unpublished articles will be in reverse chronological creation order.
+
+It will return unpublished articles with pagination. By default a page will contain 30 articles."
+        operationId "getUserUnpublishedArticles"
+        produces "application/json"
+        parameter "$ref": "#/components/parameters/pageParam"
+        parameter "$ref": "#/components/parameters/perPageParam30to1000"
+
+        response "401", "Unauthorized" do
+          let(:"api-key") { nil }
+          add_examples
+
+          run_test!
+        end
+
+        response "200", "A List of the authenticated user's Articles" do
+          let(:"api-key") { api_secret.secret }
+          schema  type: :array,
+                  items: { "$ref": "#/components/schemas/ArticleIndex" }
+          add_examples
+
+          run_test!
+        end
+      end
+    end
+
+    path "/api/articles/me/all" do
+      get "User's all articles" do
+        tags "articles"
+        description "This endpoint allows the client to retrieve a list of all articles on behalf of an authenticated user.
+
+\"Articles\" are all the posts that users create on DEV that typically show up in the feed. They can be a blog post, a discussion question, a help thread etc. but is referred to as article within the code.
+
+It will return both published and unpublished articles with pagination.
+
+Unpublished articles will be at the top of the list in reverse chronological creation order. Published articles will follow in reverse chronological publication order.
+
+By default a page will contain 30 articles."
+        operationId "getUserAllArticles"
+        produces "application/json"
+        parameter "$ref": "#/components/parameters/pageParam"
+        parameter "$ref": "#/components/parameters/perPageParam30to1000"
+
+        response "401", "Unauthorized" do
+          let(:"api-key") { nil }
+          add_examples
+
+          run_test!
+        end
+
+        response "200", "A List of the authenticated user's Articles" do
+          let(:"api-key") { api_secret.secret }
+          schema  type: :array,
+                  items: { "$ref": "#/components/schemas/ArticleIndex" }
+          add_examples
+
           run_test!
         end
       end
@@ -135,6 +265,11 @@ will remain."
                     minimum: 1
                   },
                   example: 1
+
+        parameter name: :note, in: :query, required: false,
+                  description: "Content for the note that's created along with unpublishing",
+                  schema: { type: :string },
+                  example: "Admin requested unpublishing all articles via API"
 
         response "204", "Article successfully unpublished" do
           let(:"api-key") { api_secret.secret }
@@ -174,4 +309,5 @@ will remain."
   end
   # rubocop:enable RSpec/VariableName
   # rubocop:enable RSpec/EmptyExampleGroup
+  # rubocop:enable Layout/LineLength
 end

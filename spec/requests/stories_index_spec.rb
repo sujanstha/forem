@@ -102,32 +102,6 @@ RSpec.describe "StoriesIndex", type: :request do
       expect(response.body).to include("crayons-sponsorship-widget").once
     end
 
-    it "displays correct sponsors", :aggregate_failures do
-      org = create(:organization)
-      gold_sponsorship = create(:sponsorship, level: "gold", tagline: "GOLD!!!", status: "live", organization: org)
-      silver_sponsorship = create(:sponsorship, level: "silver", tagline: "SILVER!!!", status: "live",
-                                                organization: org)
-      non_live_gold_sponsorship = create(:sponsorship, level: "gold", tagline: "NOT LIVE GOLD!!!", status: "pending",
-                                                       organization: org)
-      get "/"
-
-      displays_gold_sponsors(gold_sponsorship)
-      does_not_display_silver_sponsors(silver_sponsorship)
-      does_not_display_non_live_gold_sponsors(non_live_gold_sponsorship)
-    end
-
-    def displays_gold_sponsors(sponsorship)
-      expect(response.body).to include(sponsorship.tagline)
-    end
-
-    def does_not_display_silver_sponsors(sponsorship)
-      expect(response.body).not_to include(sponsorship.tagline)
-    end
-
-    def does_not_display_non_live_gold_sponsors(sponsorship)
-      expect(response.body).not_to include(sponsorship.tagline)
-    end
-
     it "shows listings" do
       user = create(:user)
       listing = create(:listing, user_id: user.id)
@@ -138,7 +112,7 @@ RSpec.describe "StoriesIndex", type: :request do
     it "does not set cache-related headers if private" do
       allow(Settings::UserExperience).to receive(:public).and_return(false)
       get "/"
-      expect(response.status).to eq(200)
+      expect(response).to have_http_status(:ok)
 
       expect(response.headers["X-Accel-Expires"]).to be_nil
       expect(response.headers["Cache-Control"]).not_to eq("public, no-cache")
@@ -148,7 +122,7 @@ RSpec.describe "StoriesIndex", type: :request do
     it "sets correct cache headers", :aggregate_failures do
       get "/"
 
-      expect(response.status).to eq(200)
+      expect(response).to have_http_status(:ok)
       sets_fastly_headers
       sets_nginx_headers
     end

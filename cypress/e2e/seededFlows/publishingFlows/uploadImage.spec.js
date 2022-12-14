@@ -18,10 +18,7 @@ describe('Upload image', () => {
       });
 
       // Confirm the UI has updated to show the uploaded state
-      cy.findByRole('button', {
-        name: 'Copy markdown for image',
-      }).click();
-
+      cy.findByRole('button', { name: /Copy/i }).click();
       cy.findByText('Copied!').should('exist');
 
       cy.window()
@@ -48,6 +45,10 @@ describe('Upload image', () => {
       cy.findByLabelText(/Upload image/, { selector: 'input' }).attachFile(
         '/images/admin-image.png',
       );
+
+      cy.findByLabelText('Post Content')
+        .invoke('val')
+        .should('match', /!\[Uploading image\]/);
 
       cy.findByLabelText('Post Content')
         .invoke('val')
