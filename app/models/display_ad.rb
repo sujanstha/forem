@@ -2,6 +2,7 @@ class DisplayAd < ApplicationRecord
   include Taggable
   acts_as_taggable_on :tags
   resourcify
+  belongs_to :creator, class_name: "User", optional: true
 
   ALLOWED_PLACEMENT_AREAS = %w[sidebar_left sidebar_left_2 sidebar_right post_sidebar post_comments].freeze
   ALLOWED_PLACEMENT_AREAS_HUMAN_READABLE = ["Sidebar Left (First Position)",
@@ -23,7 +24,9 @@ class DisplayAd < ApplicationRecord
   validates :placement_area, presence: true,
                              inclusion: { in: ALLOWED_PLACEMENT_AREAS }
   validates :body_markdown, presence: true
+  validates :organization, presence: true, if: :community?
   validate :validate_tag
+
   before_save :process_markdown
   after_save :generate_display_ad_name
 
@@ -34,33 +37,14 @@ class DisplayAd < ApplicationRecord
                              search: "%#{term}%"
                      }
 
-  def self.for_display(area, user_signed_in, article_tags = [])
-    relation = approved_and_published.where(placement_area: area).order(success_rate: :desc)
-
-    if article_tags.any?
-      display_ads_with_no_tags = relation.where(cached_tag_list: "")
-      display_ads_with_targeted_article_tags = relation.cached_tagged_with_any(article_tags)
-
-      relation = display_ads_with_no_tags.or(display_ads_with_targeted_article_tags)
-    end
-
-    if article_tags.blank?
-      relation = relation.where(cached_tag_list: "")
-    end
-
-    relation = if user_signed_in
-                 relation.where(display_to: %w[all logged_in])
-               else
-                 relation.where(display_to: %w[all logged_out])
-               end
-
-    relation.order(success_rate: :desc)
-
-    if rand(8) == 1
-      relation.sample
-    else
-      relation.limit(rand(1..15)).sample
-    end
+  def self.for_display(area:, user_signed_in:, organization_id: nil, article_tags: [])
+    DisplayAds::FilteredAdsQuery.call(
+      display_ads: self,
+      area: area,
+      organization_id: organization_id,
+      user_signed_in: user_signed_in,
+      article_tags: article_tags,
+    )
   end
 
   def human_readable_placement_area
@@ -73,6 +57,13 @@ class DisplayAd < ApplicationRecord
 
     validate_tag_name(tag_list)
   end
+
+  # This needs to correspond with Rails built-in method signature
+  # rubocop:disable Style/OptionHash
+  def as_json(options = {})
+    super(options.merge(except: %i[tags tag_list])).merge("tag_list" => cached_tag_list)
+  end
+  # rubocop:enable Style/OptionHash
 
   private
 

@@ -5,13 +5,14 @@ FactoryBot.define do
     published_at { Time.current }
 
     transient do
-      title { generate :title }
+      title { generate(:title) }
       published { true }
       date { "01/01/2015" }
       tags { "javascript, html, discuss" }
       canonical_url { Faker::Internet.url }
       with_canonical_url { false }
       with_main_image { true }
+      main_image_from_frontmatter { false }
       with_date { false }
       with_tags { true }
       with_hr_issue { false }
@@ -62,9 +63,13 @@ FactoryBot.define do
   end
 
   trait :video do
-    after(:build) do |article|
-      article.video = "https://s3.amazonaws.com/dev-to-input-v0/video-upload__2d7dc29e39a40c7059572bca75bb646b"
-      article.save
+    after(:create) do |article|
+      article.update_columns(
+        video: "https://s3.amazonaws.com/dev-to-input-v0/video-upload__2d7dc29e39a40c7059572bca75bb646b",
+        video_code: "video-upload__2d7dc29e39a40c7059572bca75bb646b",
+        video_source_url: "https://dw71fyauz7yz9.cloudfront.net/video-upload__1e42eb0bab4abb3c63baeb5e8bdfe69f/video-upload__1e42eb0bab4abb3c63baeb5e8bdfe69f.m3u8",
+        video_thumbnail_url: "https://dw71fyauz7yz9.cloudfront.net/video-upload__1e42eb0bab4abb3c63baeb5e8bdfe69f/thumbs-video-upload__1e42eb0bab4abb3c63baeb5e8bdfe69f-00001.png",
+      )
     end
   end
 

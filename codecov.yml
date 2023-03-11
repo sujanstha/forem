@@ -2,3 +2,15 @@ ignore:
   - "vendor"
   - "bin"
   - "**/*.svg"
+  - "lib/sitemap_generator"
+  - "lib/generators"
+coverage:
+  status:
+    patch: 90%
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%

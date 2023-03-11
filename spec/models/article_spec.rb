@@ -7,6 +7,8 @@ RSpec.describe Article do
     article
   end
 
+  before { allow(FeatureFlag).to receive(:enabled?).with(:consistent_rendering, any_args).and_return(true) }
+
   let(:user) { create(:user) }
   let!(:article) { create(:article, user: user) }
 
@@ -206,7 +208,7 @@ RSpec.describe Article do
     end
 
     describe "liquid tags" do
-      xit "is not valid if it contains invalid liquid tags" do
+      it "is not valid if it contains invalid liquid tags" do
         body = "{% github /thepracticaldev/dev.to %}"
         article = build(:article, body_markdown: body)
         expect(article).not_to be_valid
@@ -1337,6 +1339,22 @@ RSpec.describe Article do
       expect(another_article).not_to be_valid
       expect(another_article.errors.messages[:canonical_url]).to include(error_message)
       expect(another_article.errors.messages[:feed_source_url]).to include(error_message)
+    end
+  end
+
+  describe "#reaction_categories reports unique associated reaction categories" do
+    before do
+      user2 = create(:user)
+      user2.add_role(:trusted)
+
+      create(:reaction, reactable: article, category: "like")
+      create(:reaction, reactable: article, category: "like")
+      create(:reaction, reactable: article, category: "readinglist")
+      create(:reaction, reactable: article, category: "vomit", user: user2)
+    end
+
+    it "reports accurately" do
+      expect(article.reaction_categories).to contain_exactly("like", "readinglist", "vomit")
     end
   end
 end
