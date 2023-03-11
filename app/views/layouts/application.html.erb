@@ -20,9 +20,9 @@
       <%= render "layouts/styles", qualifier: "main" %>
       <%= javascript_include_tag "base", defer: true %>
       <% if user_signed_in? %>
-        <%= javascript_packs_with_chunks_tag "base", "baseInitializers", "Search", "runtimeBanner", "onboardingRedirectCheck", "contentDisplayPolicy", "baseTracking", defer: true %>
+        <%= javascript_packs_with_chunks_tag "base", "Search", "onboardingRedirectCheck", "contentDisplayPolicy", defer: true %>
       <% else %>
-        <%= javascript_packs_with_chunks_tag "base", "baseInitializers", "Search", "runtimeBanner", "baseTracking", defer: true %>
+        <%= javascript_packs_with_chunks_tag "base", "Search", defer: true %>
       <% end %>
       <%= yield(:page_meta) %>
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -42,6 +42,9 @@
       <meta property="forem:name" content="<%= community_name %>" />
       <meta property="forem:logo" content="<%= optimized_image_url(Settings::General.logo_png, width: 512, fetch_format: "png") %>" />
       <meta property="forem:domain" content="<%= Settings::General.app_domain %>" />
+    <% end %>
+    <% if ENV.key?('ADSENSE_CLIENT_ID') %>
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= ENV['ADSENSE_CLIENT_ID'] %>" crossorigin="anonymous"></script>
     <% end %>
   </head>
   <% unless internal_navigation? %>

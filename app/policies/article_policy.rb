@@ -247,7 +247,6 @@ class ArticlePolicy < ApplicationPolicy
   end
 
   private
-
   def user_author?
     # We might have the Article class (instead of the Article instance), so let's short circuit
     return false unless record.respond_to?(:user_id)
