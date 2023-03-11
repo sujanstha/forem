@@ -51,19 +51,24 @@ class Article < ApplicationRecord
 
   MAX_TAG_LIST_SIZE = 4
 
-  # Filter out anything that isn't a word, space, punctuation mark, or
-  # recognized emoji.
+  # Filter out anything that isn't a word, space, punctuation mark,
+  # recognized emoji, and other auxiliary marks.
   # See: https://github.com/forem/forem/pull/16787#issuecomment-1062044359
+  #
+  # NOTE: try not to use hyphen (- U+002D) in comments inside regex,
+  # otherwise it may break parser randomly.
+  # Use underscore or Unicode hyphen (‐ U+2010) instead.
   # rubocop:disable Lint/DuplicateRegexpCharacterClassElement
   TITLE_CHARACTERS_ALLOWED = /[^
     [:word:]
     [:space:]
     [:punct:]
-    \u00a3        # GBP symbol
+    \p{Sc}        # All currency symbols
     \u00a9        # Copyright symbol
     \u00ae        # Registered trademark symbol
-    \u200d        # Zero-width joiner, for multipart emojis such as family
-    \u203c        # !! emoji
+    \u180e        # Mongolian vowel separator
+    \u200c        # Zero‐width non‐joiner, for complex scripts
+    \u200d        # Zero‐width joiner, for multipart emojis such as family
     \u20e3        # Combining enclosing keycap
     \u2122        # Trademark symbol
     \u2139        # Information symbol
@@ -73,15 +78,26 @@ class Article < ApplicationRecord
     \u231b        # Hourglass emoji
     \u2328        # Keyboard emoji
     \u23cf        # Eject symbol
-    \u23e9-\u23f3 # Various VCR-actions emoji and clocks
+    \u23e9-\u23f3 # Various VCR‐actions emoji and clocks
     \u23f8-\u23fa # More VCR emoji
     \u24c2        # Blue circle with a white M in it
     \u25aa        # Black box
     \u25ab        # White box
-    \u25b6        # VCR-style play emoji
-    \u25c0        # VCR-style play backwards emoji
+    \u25b6        # VCR‐style play emoji
+    \u25c0        # VCR‐style play backwards emoji
     \u25fb-\u25fe # More black and white squares
     \u2600-\u273f # Weather, zodiac, coffee, hazmat, cards, music, other misc emoji
+    \u2744        # Snowflake emoji
+    \u2747        # Sparkle emoji
+    \u274c        # Cross mark
+    \u274e        # Cross mark box
+    \u2753-\u2755 # Big red and white ? emoji, big white ! emoji
+    \u2757        # Big red ! emoji
+    \u2763-\u2764 # Heart ! and heart emoji
+    \u2795-\u2797 # Math operator emoji
+    \u27a1        # Right arrow
+    \u27b0        # One loop
+    \u27bf        # Two loops
     \u2934        # Curved arrow pointing up to the right
     \u2935        # Curved arrow pointing down to the right
     \u2b00-\u2bff # More arrows, geometric shapes
@@ -89,7 +105,6 @@ class Article < ApplicationRecord
     \u303d        # Either a line chart plummeting or the letter M, not sure
     \u3297        # Circled Ideograph Congratulation
     \u3299        # Circled Ideograph Secret
-    \u20ac        # Euro symbol (€)
     \u{1f000}-\u{1ffff} # More common emoji
   ]+/m
   # rubocop:enable Lint/DuplicateRegexpCharacterClassElement
@@ -445,6 +460,14 @@ class Article < ApplicationRecord
   end
 
   def has_frontmatter?
+    if FeatureFlag.enabled?(:consistent_rendering, FeatureFlag::Actor[user])
+      processed_content.has_front_matter?
+    else
+      original_has_frontmatter?
+    end
+  end
+
+  def original_has_frontmatter?
     fixed_body_markdown = MarkdownProcessor::Fixer::FixAll.call(body_markdown)
     begin
       parsed = FrontMatterParser::Parser.new(:md).call(fixed_body_markdown)
@@ -620,7 +643,42 @@ class Article < ApplicationRecord
       .strip
   end
 
+  def processed_content
+    return @processed_content if @processed_content && !body_markdown_changed?
+    return unless user
+
+    @processed_content = ContentRenderer.new(body_markdown, source: self, user: user)
+  end
+
   def evaluate_markdown
+    if FeatureFlag.enabled?(:consistent_rendering, FeatureFlag::Actor[user])
+      extracted_evaluate_markdown
+    else
+      original_evaluate_markdown
+    end
+  end
+
+  def extracted_evaluate_markdown
+    content_renderer = processed_content
+    return unless content_renderer
+
+    self.processed_html = content_renderer.process(calculate_reading_time: true)
+    self.reading_time = content_renderer.reading_time
+
+    front_matter = content_renderer.front_matter
+
+    if front_matter.any?
+      evaluate_front_matter(front_matter)
+    elsif tag_list.any?
+      set_tag_list(tag_list)
+    end
+
+    self.description = processed_description if description.blank?
+  rescue ContentRenderer::ContentParsingError => e
+    errors.add(:base, ErrorMessages::Clean.call(e.message))
+  end
+
+  def original_evaluate_markdown
     fixed_body_markdown = MarkdownProcessor::Fixer::FixAll.call(body_markdown || "")
     parsed = FrontMatterParser::Parser.new(:md).call(fixed_body_markdown)
     parsed_markdown = MarkdownProcessor::Parser.new(parsed.content, source: self, user: user)
@@ -686,31 +744,31 @@ class Article < ApplicationRecord
     Articles::BustMultipleCachesWorker.perform_bulk(job_params)
   end
 
-  def evaluate_front_matter(front_matter)
-    self.title = front_matter["title"] if front_matter["title"].present?
-    set_tag_list(front_matter["tags"]) if front_matter["tags"].present?
-    self.published = front_matter["published"] if %w[true false].include?(front_matter["published"].to_s)
+  def evaluate_front_matter(hash)
+    self.title = hash["title"] if hash["title"].present?
+    set_tag_list(hash["tags"]) if hash["tags"].present?
+    self.published = hash["published"] if %w[true false].include?(hash["published"].to_s)
 
-    self.published_at = front_matter["published_at"] if front_matter["published_at"]
-    self.published_at ||= parse_date(front_matter["date"]) if published
+    self.published_at = hash["published_at"] if hash["published_at"]
+    self.published_at ||= parse_date(hash["date"]) if published
 
-    set_main_image(front_matter)
-    self.canonical_url = front_matter["canonical_url"] if front_matter["canonical_url"].present?
+    set_main_image(hash)
+    self.canonical_url = hash["canonical_url"] if hash["canonical_url"].present?
 
-    update_description = front_matter["description"].present? || front_matter["title"].present?
-    self.description = front_matter["description"] if update_description
+    update_description = hash["description"].present? || hash["title"].present?
+    self.description = hash["description"] if update_description
 
-    self.collection_id = nil if front_matter["title"].present?
-    self.collection_id = Collection.find_series(front_matter["series"], user).id if front_matter["series"].present?
+    self.collection_id = nil if hash["title"].present?
+    self.collection_id = Collection.find_series(hash["series"], user).id if hash["series"].present?
   end
 
-  def set_main_image(front_matter)
+  def set_main_image(hash)
     # At one point, we have set the main_image based on the front matter. Forever will that now dictate the behavior.
     if main_image_from_frontmatter?
-      self.main_image = front_matter["cover_image"]
-    elsif front_matter.key?("cover_image")
+      self.main_image = hash["cover_image"]
+    elsif hash.key?("cover_image")
       # They've chosen the set cover image in the front matter, so we'll proceed with that assumption.
-      self.main_image = front_matter["cover_image"]
+      self.main_image = hash["cover_image"]
       self.main_image_from_frontmatter = true
     end
   end
@@ -879,7 +937,7 @@ class Article < ApplicationRecord
   end
 
   def title_to_slug
-    "#{Sterile.sluggerize(title)}-#{rand(100_000).to_s(26)}" # rubocop:disable Rails/ToSWithArgument
+    "#{Sterile.sluggerize(title)}-#{rand(100_000).to_s(26)}"
   end
 
   def touch_actor_latest_article_updated_at(destroying: false)

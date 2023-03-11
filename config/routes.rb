@@ -55,6 +55,8 @@ Rails.application.routes.draw do
           put "unpublish", on: :member
         end
 
+        resources :pages, only: %i[index show create update destroy]
+
         draw :api
       end
 
@@ -186,6 +188,7 @@ Rails.application.routes.draw do
     get "/social_previews/article/:id", to: "social_previews#article", as: :article_social_preview
 
     get "/async_info/base_data", controller: "async_info#base_data", defaults: { format: :json }
+    get "/async_info/navigation_links", controller: "async_info#navigation_links"
 
     # Settings
     post "users/join_org", to: "users#join_org"
@@ -268,7 +271,7 @@ Rails.application.routes.draw do
                                      constraints: {
                                        which: /organization/
                                      }
-    get "/dashboard/:username", to: "dashboards#show"
+    get "/dashboard/:username", to: "dashboards#show", as: :dashboard_show_user
 
     # for testing rails mailers
     unless Rails.env.production?
