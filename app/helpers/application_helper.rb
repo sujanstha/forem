@@ -1,5 +1,5 @@
 module ApplicationHelper
-  LARGE_USERBASE_THRESHOLD = 1000
+  LARGE_USERBASE_THRESHOLD = 5000
 
   # @return [Hash<String, String>] the key is the timeframe name and the corresponding is the
   #         translated label.
