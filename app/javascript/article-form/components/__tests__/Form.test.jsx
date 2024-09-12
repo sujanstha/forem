@@ -2,11 +2,21 @@ import { h } from 'preact';
 import { render, waitFor } from '@testing-library/preact';
 import fetch from 'jest-fetch-mock';
 import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
+import { userEvent } from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { Form } from '../Form';
 
 fetch.enableMocks();
+
+// Mock Algolia
+jest.mock('algoliasearch/lite', () => {
+  const searchClient = {
+    initIndex: jest.fn(() => ({
+      search: jest.fn().mockResolvedValue({ hits: [] })
+    }))
+  };
+  return jest.fn(() => searchClient);
+});
 
 let bodyMarkdown;
 let mainImage;
