@@ -44,7 +44,9 @@
   <% end %>
 <% end %>
 
-<%= javascript_include_tag "commentDropdowns", "followButtons", defer: true %>
+<% if user_signed_in? %>
+  <%= javascript_include_tag "commentDropdowns", "followButtons", defer: true %>
+<% end %>
 
 <div class="crayons-layout crayons-layout--limited-l gap-0" data-follow-button-container="true">
   <% if @commentable && @commentable.class.name == "Article" %>
